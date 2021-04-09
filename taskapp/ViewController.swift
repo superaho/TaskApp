@@ -8,9 +8,10 @@
 import UIKit
 import RealmSwift
 
-class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UISearchBarDelegate {
     
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var searchbar: UISearchBar!
     
     //Realmインスタンスをrealmに格納。（個人データを編集するのに使用）
     let realm = try! Realm()
@@ -20,12 +21,20 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     // 以降内容をアップデートするとリスト内は自動的に更新される。
     var taskArray = try! Realm().objects(Task.self).sorted(byKeyPath: "date", ascending: true)
     
+    // 検索結果用の配列
+    var searchArray: Results<Task>!
+
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         
         tableView.delegate = self
         tableView.dataSource = self
+        
+        searchbar.delegate = self
+        searchbar.enablesReturnKeyAutomatically = false
+        
+        searchArray = taskArray
     }
     
     // 入力画面から戻ってきた時に TableView を更新させる
@@ -35,7 +44,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        //InputVCに接続
+        //InputVCインスタンスを作成
         let inputVC: InputViewController = segue.destination as! InputViewController
         
         //セルタップの場合の値受け渡し
@@ -43,7 +52,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             //セル位置情報を取得、格納
             let indexPath = tableView.indexPathForSelectedRow
             //セル位置に応じたデータをinputVCのtaskに格納
-            inputVC.task = taskArray[indexPath!.row]
+            inputVC.task = searchArray[indexPath!.row]
         } else {            //追加時の値受け渡し
             let task = Task()
             let alltasks = realm.objects(Task.self)
@@ -57,7 +66,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return taskArray.count
+        return searchArray.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -65,7 +74,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         
         //取り出したデータをtaskに格納
-        let task = taskArray[indexPath.row]
+        let task = searchArray[indexPath.row]
         cell.textLabel?.text = task.title
         
         let formatter = DateFormatter()
@@ -95,7 +104,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         if editingStyle == .delete {
             
             //削除するtaskを取得
-            let task = taskArray[indexPath.row]
+            let task = searchArray[indexPath.row]
             
             // ローカル通知をキャンセルする
             let center = UNUserNotificationCenter.current()
@@ -116,6 +125,29 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                 }
             }
         }
+    }
+    
+    //検索ボタン押下時の呼び出しメソッド
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        //キーボードを閉じる。
+        searchBar.endEditing(true)
+    }
+ 
+ 
+    //テキスト変更時の呼び出しメソッド
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        
+        if(searchbar.text == "") {
+            //検索文字列が空の場合はすべてを表示する。
+            searchArray = taskArray
+        } else {
+            searchArray = realm
+                .objects(Task.self)
+                .filter("category BEGINSWITH %@", searchText)
+        }
+        
+        //テーブルを再読み込みする。
+        tableView.reloadData()
     }
 
 }

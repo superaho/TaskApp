@@ -11,6 +11,7 @@ import UserNotifications
 
 class InputViewController: UIViewController {
     @IBOutlet weak var titletextfield: UITextField!
+    @IBOutlet weak var categoryfield: UITextField!
     @IBOutlet weak var contentstextview: UITextView!
     @IBOutlet weak var datapicker: UIDatePicker!
     
@@ -28,6 +29,7 @@ class InputViewController: UIViewController {
         self.view.addGestureRecognizer(tapGesture)
         
         titletextfield.text = task.title
+        categoryfield.text = task.category
         contentstextview.text = task.contents
         datapicker.date = task.date
         
@@ -50,7 +52,7 @@ class InputViewController: UIViewController {
         if task.contents == "" {
             content.body = "(内容なし)"
         } else {
-            content.body = task.contents
+            content.body = task.category + ": " + task.contents
         }
         content.sound = UNNotificationSound.default
         
@@ -81,6 +83,7 @@ class InputViewController: UIViewController {
     override func viewWillDisappear(_ animated: Bool) {
         try! realm.write {
             self.task.title = self.titletextfield.text!
+            self.task.category = self.categoryfield.text!
             self.task.contents = self.contentstextview.text!
             self.task.date = self.datapicker.date
             self.realm.add(self.task, update: .modified)
